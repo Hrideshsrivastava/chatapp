@@ -25,7 +25,7 @@ const io = new Server(server, {
 const dbPool = mysql.createPool({
   host: 'localhost',
   user: 'root',           // 🔸 Change this
-  password: '2006', // 🔸 Change this
+  password: 'Kashish@1471', // 🔸 Change this
   database: 'whatsapp_clone', // 🔸 Create this DB
   waitForConnections: true,
   connectionLimit: 10,
