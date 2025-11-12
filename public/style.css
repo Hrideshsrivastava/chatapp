@@ -46,6 +46,7 @@ i {
     padding: 10px 15px;
     background-color: #f0f2f5;
     border-bottom: 1px solid #ddd;
+
 }
 
 .sidebar-header .header-icons {
@@ -57,6 +58,11 @@ i {
     font-size: 1.2rem;
 }
 
+
+.sidebar-header {
+  position: relative;
+  z-index: 5;
+}
 .sidebar-search {
     display: flex;
     align-items: center;
@@ -192,4 +198,72 @@ i {
 .chat-input-footer i {
     font-size: 1.5rem;
     color: #54656f;
+}
+
+
+
+/*log out*/
+
+#logoutBtn {
+  font-size: 1.3rem;
+  color: #075E54;
+  margin-left: 15px;
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+#logoutBtn:hover {
+  color: #25D366; /* WhatsApp green */
+  transform: scale(1.1);
+}
+
+.user-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+
+
+/*new chat*/
+
+#newChatBtn {
+  font-size: 1.3rem;
+  color: #075E54;
+  margin-right: 15px;
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+#newChatBtn:hover {
+  color: #25D366; /* WhatsApp green */
+  transform: scale(1.1);
+}
+
+/*add people*/
+#addPeopleBtn {
+  font-size: 1.3rem;
+  color: #075E54;
+  margin-right: 10px;
+  cursor: pointer;
+  transition: 0.2s;
+}
+#addPeopleBtn:hover {
+  color: #25D366;
+  transform: scale(1.1);
+}
+
+
+
+
+
+.header-icons i {
+  cursor: pointer;
+  pointer-events: auto !important;
+  transition: transform 0.2s, color 0.2s;
+}
+
+.header-icons i:hover {
+  transform: scale(1.15);
+  color: #25D366;
 }

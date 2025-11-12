@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Login - WhatsApp Clone</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body style="display:flex;flex-direction:column;justify-content:center;align-items:center;">
+  <h2>Login or Register</h2>
+  <input id="userId" placeholder="User ID (leave empty to create new)" />
+  <input id="name" placeholder="Name (for new user)" />
+  <input id="password" type="password" placeholder="Password" />
+  <button id="loginBtn">Continue</button>
+  <p id="result" style="color:red;"></p>
+
+  <script>
+    const API_URL = 'http://localhost:3000';
+    document.getElementById('loginBtn').onclick = async () => {
+      const userId = document.getElementById('userId').value.trim();
+      const name = document.getElementById('name').value.trim();
+      const password = document.getElementById('password').value.trim();
+
+      const res = await fetch(`${API_URL}/api/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId, name, password })
+      });
+
+      const data = await res.json();
+      if (data.success) {
+        localStorage.setItem('user', JSON.stringify(data.user || { user_id: data.userId, name: data.name }));
+        window.location.href = '/index.html';
+      } else {
+        document.getElementById('result').textContent = data.message || data.error;
+      }
+    };
+  </script>
+</body>
+</html>

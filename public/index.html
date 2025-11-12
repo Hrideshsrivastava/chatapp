@@ -12,20 +12,27 @@
   <div class="desktop-container">
     <aside class="sidebar">
       <header class="sidebar-header">
-        <img src="https://via.placeholder.com/40/075E54/FFFFFF?text=U" class="avatar" />
-        <div class="header-icons">
-          <i class="fas fa-circle-notch"></i>
-          <i class="fas fa-comment-alt"></i>
-          <i class="fas fa-ellipsis-v"></i>
-        </div>
-      </header>
+  <div class="user-info">
+    <img src="https://via.placeholder.com/40/075E54/FFFFFF?text=U" class="avatar" />
+    <div>
+      <div id="userName">User</div>
+      <div id="userIdDisplay" style="font-size:0.8em;color:#888;"></div>
+    </div>
+  </div>
+ <div class="header-icons">
+  <i class="fas fa-plus-circle" id="newChatBtn" title="New Chat"></i>
+  <i class="fas fa-sign-out-alt" id="logoutBtn" title="Logout"></i>
+</div>
+
+</header>
+
 
       <div class="sidebar-search">
-        <i class="fas fa-search"></i>
-        <input type="text" placeholder="Search or start new chat" />
-      </div>
+  <i class="fas fa-search"></i>
+  <input type="text" placeholder="Search or start new chat" />
+</div>
 
-      <div class="chat-list">
+      <div class="chat-list" id="chatList">
         <div class="chat-item" data-chat-id="1" data-name="Alice" data-avatar="https://via.placeholder.com/50/FF5733/FFFFFF?text=A">
           <img src="https://via.placeholder.com/50/FF5733/FFFFFF?text=A" class="avatar" />
           <div class="chat-info">
@@ -53,6 +60,7 @@
         <div class="header-icons">
           <i class="fas fa-search"></i>
           <i class="fas fa-ellipsis-v"></i>
+           <i class="fas fa-user-plus" id="addPeopleBtn" title="Add People"></i>
         </div>
       </header>
 
