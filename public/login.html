@@ -1,39 +1,48 @@
-<!DOCTYPE html>
-<html lang="en">
+<!doctype html>
+<html>
 <head>
-  <meta charset="UTF-8" />
-  <title>Login - WhatsApp Clone</title>
+  <meta charset="utf-8" />
+  <title>Login - NeonChat</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
   <link rel="stylesheet" href="style.css" />
 </head>
-<body style="display:flex;flex-direction:column;justify-content:center;align-items:center;">
-  <h2>Login or Register</h2>
-  <input id="userId" placeholder="User ID (leave empty to create new)" />
-  <input id="name" placeholder="Name (for new user)" />
-  <input id="password" type="password" placeholder="Password" />
-  <button id="loginBtn">Continue</button>
-  <p id="result" style="color:red;"></p>
+<body style="display:flex;align-items:center;justify-content:center;height:100vh;">
+  <div style="width:320px;padding:28px;background:#051; border-radius:10px;color:#fff;">
+    <h2 style="margin:0 0 12px;color:#0ff">NeonChat — Login / Register</h2>
+    <input id="userId" placeholder="Secret ID (leave empty to register)" style="width:100%;padding:10px;margin-bottom:10px;" />
+    <input id="name" placeholder="Display name (for new users)" style="width:100%;padding:10px;margin-bottom:10px;" />
+    <input id="password" placeholder="Password" type="password" style="width:100%;padding:10px;margin-bottom:12px;" />
+    <button id="loginBtn" style="width:100%;padding:10px;background:#0ff;border:none;color:#000;font-weight:700">Continue</button>
+    <p id="result" style="color:#f66;margin-top:8px"></p>
+  </div>
 
-  <script>
-    const API_URL = 'http://localhost:3000';
-    document.getElementById('loginBtn').onclick = async () => {
-      const userId = document.getElementById('userId').value.trim();
-      const name = document.getElementById('name').value.trim();
-      const password = document.getElementById('password').value.trim();
+<script>
+const API_URL = location.origin;
+document.getElementById('loginBtn').onclick = async () => {
+  const userId = document.getElementById('userId').value.trim();
+  const name = document.getElementById('name').value.trim();
+  const password = document.getElementById('password').value;
 
-      const res = await fetch(`${API_URL}/api/login`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId, name, password })
-      });
-
-      const data = await res.json();
-      if (data.success) {
-        localStorage.setItem('user', JSON.stringify(data.user || { user_id: data.userId, name: data.name }));
-        window.location.href = '/index.html';
-      } else {
-        document.getElementById('result').textContent = data.message || data.error;
-      }
-    };
-  </script>
+  try {
+    const res = await fetch(`${API_URL}/api/login`, {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ userId: userId || undefined, name, password })
+    });
+    const data = await res.json();
+    if (data.success) {
+      // server returns data.user either from DB or our created object
+      const user = data.user || { user_id: data.user.user_id, name: data.user.name };
+      localStorage.setItem('user', JSON.stringify(user));
+      window.location.href = '/index.html';
+    } else {
+      document.getElementById('result').textContent = data.message || data.error || 'Login failed';
+    }
+  } catch (err) {
+    document.getElementById('result').textContent = 'Network error';
+    console.error(err);
+  }
+};
+</script>
 </body>
 </html>

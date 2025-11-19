@@ -1,81 +1,49 @@
-<!DOCTYPE html>
-<html lang="en">
+<!doctype html>
+<html>
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>WhatsApp Desktop</title>
+  <meta charset="utf-8" />
+  <title>NeonChat</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
   <link rel="stylesheet" href="style.css" />
-  <link rel="stylesheet"
-        href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
 </head>
 <body>
-  <div class="desktop-container">
+  <div class="desktop-container glass-panel">
     <aside class="sidebar">
       <header class="sidebar-header">
-  <div class="user-info">
-    <img src="https://via.placeholder.com/40/075E54/FFFFFF?text=U" class="avatar" />
-    <div>
-      <div id="userName">User</div>
-      <div id="userIdDisplay" style="font-size:0.8em;color:#888;"></div>
-    </div>
-  </div>
- <div class="header-icons">
-  <i class="fas fa-plus-circle" id="newChatBtn" title="New Chat"></i>
-  <i class="fas fa-sign-out-alt" id="logoutBtn" title="Logout"></i>
-</div>
-
-</header>
-
-
-      <div class="sidebar-search">
-  <i class="fas fa-search"></i>
-  <input type="text" placeholder="Search or start new chat" />
-</div>
-
-      <div class="chat-list" id="chatList">
-        <div class="chat-item" data-chat-id="1" data-name="Alice" data-avatar="https://via.placeholder.com/50/FF5733/FFFFFF?text=A">
-          <img src="https://via.placeholder.com/50/FF5733/FFFFFF?text=A" class="avatar" />
-          <div class="chat-info">
-            <div class="chat-name">Alice</div>
-            <div class="chat-message">Hey, are you free tomorrow?</div>
-          </div>
-          <div class="chat-time">10:30 AM</div>
+        <div class="user-info">
+          <div class="avatar-wrapper"><img id="userAvatar" class="avatar" src="" /><div class="status-dot"></div></div>
+          <div><div id="userName">User</div><div id="userIdDisplay"></div></div>
         </div>
-
-        <div class="chat-item active" data-chat-id="2" data-name="Bob" data-avatar="https://via.placeholder.com/50/33FF57/FFFFFF?text=B">
-          <img src="https://via.placeholder.com/50/33FF57/FFFFFF?text=B" class="avatar" />
-          <div class="chat-info">
-            <div class="chat-name">Bob</div>
-            <div class="chat-message">Got the files, thanks!</div>
-          </div>
-          <div class="chat-time">9:15 AM</div>
+        <div class="header-icons">
+          <i class="fas fa-plus-circle" id="newChatBtn" title="New Chat"></i>
+          <i class="fas fa-power-off" id="logoutBtn" title="Logout"></i>
         </div>
-      </div>
+      </header>
+
+      <div class="sidebar-search"><div class="search-wrapper"><i class="fas fa-search"></i><input placeholder="Search..." /></div></div>
+
+      <div class="chat-list custom-scroll" id="chatList"></div>
     </aside>
 
     <main class="main-content">
       <header class="chat-header">
-        <img src="https://via.placeholder.com/40/33FF57/FFFFFF?text=B" class="avatar" id="active-chat-avatar" />
-        <div class="header-title" id="active-chat-name">Bob</div>
-        <div class="header-icons">
-          <i class="fas fa-search"></i>
-          <i class="fas fa-ellipsis-v"></i>
-           <i class="fas fa-user-plus" id="addPeopleBtn" title="Add People"></i>
-        </div>
+        <img id="active-chat-avatar" class="avatar" src="" style="opacity:0" />
+        <div class="header-title neon-text-blue" id="active-chat-name">Select a chat</div>
+        <div class="header-icons"><i class="fas fa-user-plus" id="addPeopleBtn" title="Add People"></i></div>
       </header>
 
-      <div class="message-area"></div>
+      <div class="message-area custom-scroll"></div>
 
       <footer class="chat-input-footer">
-        <i class="fas fa-laugh"></i>
         <i class="fas fa-paperclip"></i>
-        <input type="text" placeholder="Type a message..." />
-        <i class="fas fa-microphone"></i>
+        <input id="messageInput" placeholder="Type a message..." />
+        <i class="fas fa-paper-plane" id="sendBtn"></i>
       </footer>
     </main>
   </div>
 
-  <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+  <script src="/socket.io/socket.io.js"></script>
   <script src="script.js"></script>
 </body>
 </html>

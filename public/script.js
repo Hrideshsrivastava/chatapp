@@ -1,71 +1,77 @@
+// script.js
 const storedUser = JSON.parse(localStorage.getItem('user'));
-if (!storedUser) {
-  window.location.href = '/login.html';
-}
+if (!storedUser) window.location.href = '/login.html';
 
-const API_URL = 'http://localhost:3000';
-const socket = io(API_URL);
-const CURRENT_USER_ID = storedUser.user_id;
+const CURRENT_USER_ID = String(storedUser.user_id); // string secret code
+const API_URL = window.location.origin;
+if (!window.socket) {
+  window.socket = io(API_URL, { autoConnect: true });
+}
+const socket = window.socket;
+
+
+// DOM
+const chatList = document.getElementById('chatList');
+const messageArea = document.querySelector('.message-area');
+const messageInput = document.getElementById('messageInput');
+const chatNameHeader = document.getElementById('active-chat-name');
+const chatAvatarHeader = document.getElementById('active-chat-avatar');
 
 document.getElementById('userName').textContent = storedUser.name;
 document.getElementById('userIdDisplay').textContent = `ID: ${CURRENT_USER_ID}`;
+document.getElementById('userAvatar').src = `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(storedUser.name)}&backgroundColor=00f3ff`;
+
 document.getElementById('logoutBtn').onclick = () => {
-  localStorage.removeItem('user');
-  window.location.href = '/login.html';
+  localStorage.removeItem('user'); window.location.href = '/login.html';
 };
 
+let currentChatId = null;
+let userChats = [];
 
-
-
-// --- New Chat Button ---
+// New chat
 document.getElementById('newChatBtn').onclick = async () => {
-  const otherUserId = prompt('Enter the User ID of the person you want to chat with:');
-  if (!otherUserId || otherUserId.trim() === '') return;
-
+  const other = prompt('Enter the 5-char secret ID of the person to chat with:');
+  if (!other) return;
   try {
     const res = await fetch(`${API_URL}/api/createChat`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ userA: CURRENT_USER_ID, userB: otherUserId.trim() })
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ userA: CURRENT_USER_ID, userB: other.trim() })
     });
-
     const data = await res.json();
-
     if (data.success) {
-      alert(`Chat created with user ${otherUserId}!`);
-      await loadUserChats(); // Reload the chat list
-    } else {
-      alert('Could not create chat. Check User ID.');
-    }
-  } catch (err) {
-    console.error('❌ Error creating chat:', err);
-    alert('Failed to create chat. Check console for details.');
-  }
+      await loadUserChats();
+      openChat(data.chat.chat_id);
+    } else alert('Could not create chat: ' + (data.error || 'unknown'));
+  } catch (err) { console.error(err); alert('Network error'); }
 };
 
-
-// --- Add People Button ---
-
+// Add people
 document.getElementById('addPeopleBtn').onclick = async () => {
   if (!currentChatId) {
     alert('Open a chat first to add people.');
     return;
   }
 
+  // Ask for list of members to add
   const namesRaw = prompt('Enter the NAMES of users to add (comma separated). Use exact display names:');
   if (!namesRaw) return;
 
-  const nameList = namesRaw.split(',')
+  const nameList = namesRaw
+    .split(',')
     .map(n => n.trim())
     .filter(Boolean);
 
   if (nameList.length === 0) return;
 
-  let groupName = null;
-  if (nameList.length > 1) {
-    groupName = prompt('You are adding multiple people. Enter a group name (leave blank to use default):');
-    if (groupName !== null) groupName = groupName.trim();
+  // 🔥 ALWAYS ask for group name
+  let groupName = prompt("Enter a GROUP NAME for this chat:");
+
+  if (!groupName || groupName.trim() === "") {
+    alert("Group name is required.");
+    return;
   }
+
+  groupName = groupName.trim();
 
   try {
     const res = await fetch(`${API_URL}/api/addMembersToChat`, {
@@ -74,153 +80,156 @@ document.getElementById('addPeopleBtn').onclick = async () => {
       body: JSON.stringify({
         chatId: currentChatId,
         memberNames: nameList,
-        groupName: groupName || null
+        groupName: groupName
       })
     });
 
     const data = await res.json();
     if (!data.success) {
-      alert(data.error || 'Could not add members. Check console for details.');
-      console.error('addMembersToChat failed:', data);
+      alert(data.error || 'Could not add members.');
       return;
     }
 
-    // Success: refresh chat list and optionally open the chat again
     await loadUserChats();
     alert('Members added successfully.');
-    // Optionally re-open the current chat to reload messages/participants
     openChat(currentChatId);
+
   } catch (err) {
     console.error('❌ Error adding people:', err);
-    alert('Network or server error while adding people. See console.');
+    alert('Server error while adding people.');
   }
 };
 
-
-// DOM references
-const chatList = document.getElementById('chatList');
-const messageArea = document.querySelector('.message-area');
-const messageInput = document.querySelector('.chat-input-footer input');
-const chatNameHeader = document.getElementById('active-chat-name');
-const chatAvatarHeader = document.getElementById('active-chat-avatar');
-
-let currentChatId = null;
-let userChats = [];
-
-// --- Load Chats (Always Fresh from DB) ---
+// Load chats
 async function loadUserChats() {
   try {
     const res = await fetch(`${API_URL}/api/user/${CURRENT_USER_ID}/chats?nocache=${Date.now()}`);
     userChats = await res.json();
-
-    if (userChats.length === 0) {
-      chatList.innerHTML = `<p style="text-align:center;color:#777;">No chats yet</p>`;
-      return;
-    }
-
+    // Normalize user_id as string in messages
+    userChats.forEach(c => {
+      c.messages = (c.messages || []).map(m => ({ ...m, user_id: String(m.user_id) }));
+    });
+    if (!userChats.length) { chatList.innerHTML = `<p style="text-align:center;color:#777">No chats yet</p>`; return; }
     renderChatList();
-  } catch (err) {
-    console.error('❌ Error fetching chats:', err);
-  }
+  } catch (err) { console.error('Error loading chats', err); }
 }
 
-// --- Render Sidebar ---
+// Render sidebar
 function renderChatList() {
   chatList.innerHTML = '';
-  userChats.forEach((chat) => {
+  userChats.forEach(chat => {
+    const last = chat.messages?.[chat.messages.length - 1]?.data || 'No messages yet';
     const div = document.createElement('div');
-    div.classList.add('chat-item');
+    div.className = 'chat-item';
     div.dataset.chatId = chat.chat_id;
+    const initial = (chat.chat_name || 'C')[0] || 'C';
     div.innerHTML = `
-      <img src="https://via.placeholder.com/50/33FF57/FFFFFF?text=${chat.chat_name[0]}" class="avatar" />
-      <div class="chat-info">
-        <div class="chat-name">${chat.chat_name}</div>
-        <div class="chat-message">${chat.messages.at(-1)?.data || 'No messages yet'}</div>
-      </div>
+      <img class="avatar" src="https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(chat.chat_name||'User')}&backgroundColor=00f3ff"/>
+      <div class="chat-info"><div class="chat-name">${chat.chat_name}</div><div class="chat-message">${last}</div></div>
     `;
     div.onclick = () => openChat(chat.chat_id);
     chatList.appendChild(div);
   });
 }
 
-// --- Open Chat ---
+// Open chat
 function openChat(chatId) {
   currentChatId = chatId;
-  const chat = userChats.find((c) => c.chat_id == chatId);
+  document.querySelectorAll('.chat-item').forEach(el=>el.classList.remove('active'));
+  const active = document.querySelector(`.chat-item[data-chat-id="${chatId}"]`); if (active) active.classList.add('active');
+  const chat = userChats.find(c => String(c.chat_id) === String(chatId));
+  if (!chat) return;
   chatNameHeader.textContent = chat.chat_name;
+  chatAvatarHeader.src = `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(chat.chat_name)}&backgroundColor=00f3ff`;
+  chatAvatarHeader.style.opacity = '1';
   messageArea.innerHTML = '';
   socket.emit('joinRoom', chatId);
 
-  chat.messages.forEach((msg) => {
-  const type = msg.user_id === CURRENT_USER_ID ? 'sent' : 'received';
-  addMessageToUI(type, msg.data, msg.name, msg.id, msg.user_id);
-});
-
+  chat.messages.forEach(m => {
+    const type = String(m.user_id) === CURRENT_USER_ID ? 'sent' : 'received';
+    addMessageToUI(type, m.data, m.name, m.id, m.user_id);
+  });
 }
 
-// --- Send Message ---
-messageInput.addEventListener('keypress', (e) => {
-  if (e.key === 'Enter' && messageInput.value.trim() !== '' && currentChatId) {
-    const text = messageInput.value.trim();
-    const message = {
-      data: text,
-      chatId: currentChatId,
-      userId: CURRENT_USER_ID,
-      time: new Date().toISOString(),
-    };
-    socket.emit('sendMessage', message);
-    
+// send on Enter or click send icon
+messageInput.addEventListener('keypress', e => {
+  if (e.key === 'Enter') sendMessage();
+});
+document.getElementById('sendBtn').onclick = sendMessage;
 
+function sendMessage() {
+  if (!currentChatId) { alert('Open chat first'); return; }
+  const text = messageInput.value.trim();
+  if (!text) return;
+  const msg = { data: text, chatId: currentChatId, userId: CURRENT_USER_ID, time: new Date().toISOString() };
+  socket.emit('sendMessage', msg);
+  messageInput.value = '';
+}
 
-    messageInput.value = '';
+// socket handlers
+socket.on('newMessage', msg => {
+  msg.user_id = String(msg.user_id);
+  // push into memory
+  const chat = userChats.find(c => String(c.chat_id) === String(msg.chatId));
+  if (chat) chat.messages.push(msg);
+  // if currently open, display
+  if (String(msg.chatId) === String(currentChatId)) {
+    const t = String(msg.user_id) === CURRENT_USER_ID ? 'sent' : 'received';
+    addMessageToUI(t, msg.data, msg.name, msg.id, msg.user_id);
+  } else {
+    // optionally indicate unread; for now reload list
+    loadUserChats();
   }
 });
 
-
-
-socket.on('messageAck', (msg) => {
-  addMessageToUI('sent', msg.data, msg.name, msg.id, msg.userId);
-
-  const chat = userChats.find((c) => c.chat_id == msg.chatId);
-  if (chat) chat.messages.push(msg);
+socket.on('messageDeleted', msgId => {
+  const el = document.querySelector(`[data-message-id="${msgId}"]`);
+  if (el) el.remove();
 });
-
-
-
-// --- Listen for New Messages ---
-socket.on('newMessage', (msg) => {
-  if (msg.chatId == currentChatId) addMessageToUI('received', msg.data, msg.name);
-
-  // Update chat memory
-  const chat = userChats.find((c) => c.chat_id == msg.chatId);
-  if (chat) chat.messages.push(msg);
-});
-
-
-socket.on('messageDeleted', (msgId) => {
-  const msgDiv = document.querySelector(`[data-message-id="${msgId}"]`);
-  if (msgDiv) msgDiv.remove();
-});
-
 socket.on('messageEdited', ({ msgId, newText }) => {
-  const msgDiv = document.querySelector(`[data-message-id="${msgId}"]`);
-  if (msgDiv) msgDiv.textContent = newText + ' (edited)';
+  const el = document.querySelector(`[data-message-id="${msgId}"]`);
+  if (el) el.textContent = newText + ' (edited)';
 });
 
-// --- Helper ---
+// add message DOM
 function addMessageToUI(type, text, name, messageId = null, senderId = null) {
   const div = document.createElement('div');
   div.classList.add('message', type);
-  div.textContent = text;
 
-  // Store metadata for edit/delete
+  // Create message container
+  const messageWrapper = document.createElement('div');
+  messageWrapper.classList.add('msg-wrapper');
+
+  // 🌟 Check if group chat (>2 participants)
+  const chat = userChats.find(c => c.chat_id == currentChatId);
+  const isGroup = chat && chat.participants && chat.participants.length > 2;
+
+  // 🌟 Add sender name IF:
+  // - It's a group
+  // - The sender is NOT the current user
+  if (isGroup && senderId !== CURRENT_USER_ID) {
+    const nameTag = document.createElement('div');
+    nameTag.classList.add('sender-name');
+    nameTag.textContent = name;
+    messageWrapper.appendChild(nameTag);
+  }
+
+  // Message text bubble
+  const bubble = document.createElement('div');
+  bubble.classList.add('bubble');
+  bubble.textContent = text;
+
+  messageWrapper.appendChild(bubble);
+  div.appendChild(messageWrapper);
+
+  // Metadata
   div.dataset.messageId = messageId;
   div.dataset.senderId = senderId;
 
-  // If this is my own message, make it clickable
+  // Clickable messages (edit/delete) only for own messages
   if (senderId === CURRENT_USER_ID && messageId) {
-    div.style.cursor = 'pointer';
-    div.onclick = () => showMessageOptions(div);
+    bubble.style.cursor = 'pointer';
+    bubble.onclick = () => showMessageOptions(div);
   }
 
   messageArea.appendChild(div);
@@ -228,57 +237,30 @@ function addMessageToUI(type, text, name, messageId = null, senderId = null) {
 }
 
 
+// edit/delete popup
 async function showMessageOptions(div) {
-  const msgId = div.dataset.messageId;
-  const currentText = div.textContent;
-  const choice = prompt('Choose: type "edit" to edit, "delete" to delete this message:', '');
-
+  const id = div.dataset.messageId;
+  const choice = prompt('type "edit" or "delete"');
   if (!choice) return;
   if (choice.toLowerCase() === 'delete') {
-    const confirmDel = confirm('Delete this message?');
-    if (!confirmDel) return;
-
-    try {
-      const res = await fetch(`${API_URL}/api/messages/${msgId}`, {
-        method: 'DELETE',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: CURRENT_USER_ID })
-      });
-      const data = await res.json();
-      if (data.success) {
-        div.remove();
-        socket.emit('deleteMessage', { chatId: currentChatId, msgId });
-      } else {
-        alert('Could not delete message.');
-      }
-    } catch (err) {
-      console.error('❌ Delete error:', err);
-    }
-  }
-
-  if (choice.toLowerCase() === 'edit') {
-    const newText = prompt('Edit your message:', currentText);
-    if (!newText || newText === currentText) return;
-
-    try {
-      const res = await fetch(`${API_URL}/api/messages/${msgId}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: CURRENT_USER_ID, newText })
-      });
-      const data = await res.json();
-      if (data.success) {
-        div.textContent = newText + ' (edited)';
-        socket.emit('editMessage', { chatId: currentChatId, msgId, newText });
-      } else {
-        alert('Could not edit message.');
-      }
-    } catch (err) {
-      console.error('❌ Edit error:', err);
-    }
+    if (!confirm('Delete?')) return;
+    const res = await fetch(`${API_URL}/api/messages/${id}`, {
+      method:'DELETE', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ userId: CURRENT_USER_ID })
+    });
+    const data = await res.json();
+    if (data.success) { div.remove(); socket.emit('deleteMessage', { chatId: currentChatId, msgId: id }); }
+    else alert(data.error || 'Could not delete');
+  } else if (choice.toLowerCase() === 'edit') {
+    const newText = prompt('New text', div.textContent);
+    if (!newText) return;
+    const res = await fetch(`${API_URL}/api/messages/${id}`, {
+      method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ userId: CURRENT_USER_ID, newText })
+    });
+    const data = await res.json();
+    if (data.success) { div.textContent = newText + ' (edited)'; socket.emit('editMessage', { chatId: currentChatId, msgId: id, newText }); }
+    else alert(data.error || 'Could not edit');
   }
 }
 
-
-// --- INIT ---
+// init
 loadUserChats();
